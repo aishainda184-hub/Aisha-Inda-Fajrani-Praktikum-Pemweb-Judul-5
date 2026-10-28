@@ -69,33 +69,26 @@ switch ($method) {
  */
 function handleGet(PDO $pdo, ?int $id): void {
     if ($id !== null && $id > 0) {
-        //Percobaan 5-2 Langkah 2 jika id diberikan
+        $stmt = $pdo->prepare('SELECT id, npm, nama, program_studi, angkatan, email, created_at FROM mahasiswa WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $mahasiswa = $stmt->fetch();
 
-    } else {
-        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-        if (!empty($search)) {
-            //Percobaan 5-2 Langkah 2 jika search ada
-            $stmt = $pdo->prepare('SELECT id, npm, nama, program_studi, angkatan, email, created_at FROM mahasiswa WHERE id = :id LIMIT 1');
-            $stmt->execute([':id' => $id]);
-            $mahasiswa = $stmt->fetch();
-
-            if ($mahasiswa) {
-                http_response_code(200);
-                echo json_encode(['status' => 'success', 'data' => $mahasiswa]);
-            }
+        if ($mahasiswa) {
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'data' => $mahasiswa]);
         } else {
             http_response_code(404);
             echo json_encode(['status' => 'error', 'message' => "Mahasiswa dengan ID {$id} tidak ditemukan"]);
-            //Percobaan 5-2 Langkah 2 jika tidak ada search
-            $stmt = $pdo->prepare('SELECT id, npm, nama, program_studi, angkatan, email, created_at FROM mahasiswa WHERE npm LIKE :kw1 OP nama LIKE :kw2 OR program_studi LIKE :kw3 ORDER BY id DESC');
+        }
+    } else {
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        
+        if (!empty($search)) {
+            $stmt = $pdo->prepare('SELECT id, npm, nama, program_studi, angkatan, email, created_at FROM mahasiswa WHERE npm LIKE :kw1 OR nama LIKE :kw2 OR program_studi LIKE :kw3 ORDER BY id DESC');
             $kw = "%{$search}%";
-            $stmt->execute([
-                ':kw1' => $kw,
-                ':kw2' => $kw,
-                ':kw3' => $kw,
-             ]);
-
-             $stmt = $pdo->query('SELECT id, npm, nama, program_studi, angkatan, email, created_at FROM mahasiswa ORDER BY id DESC');
+            $stmt->execute([':kw1' => $kw, ':kw2' => $kw, ':kw3' => $kw]);
+        } else {
+            $stmt = $pdo->query('SELECT id, npm, nama, program_studi, angkatan, email, created_at FROM mahasiswa ORDER BY id DESC');
         }
 
         $result = $stmt->fetchAll();
